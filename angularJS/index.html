@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+	<head>
+
+  		<title>Products application</title>
+  		<link href="css/bootstrap.min.css" rel="stylesheet">
+  		<!--[if lt IE 9]>
+  			<script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  		<![endif]-->
+
+      <script src="js/angular.min.js"></script>
+
+      <style>
+         .nameTH { width: 20%; }
+      </style>
+
+	</head>
+
+	<body>
+
+    <div class="container row">
+      <div class="col-md-6">
+        <h2>Products List</h2>
+        <div ng-app="mainApp" ng-controller="proController" name="pro" class="table-responsive">
+
+            <!-- hide the one part of the page using the funtion toggle -->
+            <div ng-hide="switch">
+
+              <table class="table table-striped">
+                   <tr>  
+                        <th class="nameTH">Name</th>
+                        <th>Description</th>
+                        <th>Prices</th>
+                   </tr>
+                   <tr ng-repeat="product in pro.items">
+                                <td class="nameTD">{{product.name}}</td>           
+                                <td>{{product.description}}</td>
+                                <td>${{product.price}}</td>
+                   </tr>
+                   
+                </table>
+
+              <button ng-click="toggle()" class="btn btn-default">Edit products</button>
+
+            </div>
+
+          <!-- hide the one part of the page using the funtion toggle -->
+          <div ng-hide="!switch">
+
+              <form name="myForm">
+
+                  <table class="table table-striped">
+                     <tr>  
+                          <th>Name</th>
+                          <th>Description</th>
+                          <th>Prices</th>
+                          <th>Remove</th>
+                     </tr>
+                     <tr ng-repeat="product in pro.items">
+                          <ng-form>
+                                  <td class="nameTD">
+                                    <input type="text" ng-change="change()" ng-model="product.name" name="name" required> 
+                                  </td> 
+
+                                  <td>
+                                    <textarea rows="4" ng-change="change()" ng-model="product.description" cols="50" name="des" required></textarea>
+                                    
+                                  </td>   
+
+                                  <td>
+
+                                      <input type="number" ng-change="change()" ng-model="product.price" min="0" max="1000000" class="input-mini" name="price" required> 
+
+                                  </td>
+
+                                  <td><button href ng-click="removeItem($index)" class="btn btn-danger">Remove</button></td>
+                     </tr>
+                     </ng-form>
+                  </table>
+                  </form>
+
+                  <button ng-click="addItem()" class="btn btn-default">Add item</button> <br /> <br />
+
+                  <button ng-click="saver()" ng-disabled="off" class="btn btn-success">View products list</button>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script>
+		<script src="js/bootstrap.min.js"></script>
+
+
+    <script>
+
+        var mainApp = angular.module("mainApp", []);
+
+        mainApp.controller('proController', function($scope, $http) {
+          // Json object hold the product list
+          $scope.pro = [];
+
+          // for the form validation to disabled "View products list" button
+          $scope.off = false;
+
+          // get the json information from the server
+          $http.get('list.json').success(function(data) { 
+                  console.log("success!");
+                  $scope.pro = data;
+              }); 
+
+
+           // Add the Item within the products
+           $scope.addItem = function() {
+                 
+                 $scope.pro.items.push({
+                          name:"name",
+                          description: "description",
+                          price: 0
+                      });
+
+                 $scope.off = false;
+            };
+
+            $scope.change = function() {
+              $scope.off = false;
+            }
+
+            $scope.switch = false;
+
+            // remove the item from the list of the products
+            $scope.removeItem = function(index) {
+               $scope.pro.items.splice(index, 1);
+               $scope.off = false;
+            };
+
+            // switch to edit or not edit 
+            $scope.toggle = function() {
+                $scope.switch = !$scope.switch;
+            }
+
+            // saver is test the form to find the errors, and send the data to the php to save the json
+            $scope.saver = function() {
+
+                // get the length of the json
+                var count = Object.keys($scope.pro.items).length;
+
+                // go through the json to validation the products. once the error find the break out the loop
+                for (var i = 0; i < count; i++) {
+
+                    if ($scope.pro.items[i].price < 0.00 || typeof($scope.pro.items[i].price) == 'undefined') {
+                      $scope.off = true;
+                      break;
+                    } 
+
+                    if ($scope.pro.items[i].name == " " || typeof($scope.pro.items[i].name) == 'undefined') {
+                      $scope.off = true;
+                      break;
+                    } 
+
+                    if ($scope.pro.items[i].description == " " || typeof($scope.pro.items[i].description) == 'undefined') {
+                      $scope.off = true;
+                      break;
+                    } 
+
+                }
+
+                // if the off is false. It will send the json to the php to be save. 
+                if ($scope.off != true) {
+   
+                    $http({
+                        method: 'POST',
+                        url: window.location.href + "list_json.php",
+                        data: {
+                            items: $scope.pro.items
+                        },
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                    })
+                    .success(function(data) {
+                        // get the data from the server side for if the have any errors
+                        console.log(data);
+                    });
+
+                    // switch back to the list mode
+                    $scope.switch = !$scope.switch;
+
+                    // set the off to false 
+                    $scope.off = false;
+
+                }
+            }
+        });
+
+
+    </script>
+
+	</body>
+</html>
